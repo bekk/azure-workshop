@@ -164,7 +164,7 @@ We will provision an SQL server that has your personal user as an administrator.
     }
     ```
 
-    Now, we can create a `random_string` resource to generate our password. Add the following code to `database.tf`:
+    Now, we can create a `random_password` resource to generate our password. Add the following code to `database.tf`:
 
     ```terraform
     resource "random_password" "sql_server_admin_password" {
@@ -189,7 +189,7 @@ We will provision an SQL server that has your personal user as an administrator.
 
       # The (unsecure) administrator username and password
       administrator_login          = "unsecure-admin"
-      administrator_login_password = random_string.sql_server_admin_password.result
+      administrator_login_password = random_password.sql_server_admin_password.result
 
       # The Azure AD (Entra ID) based administrator setup
       azuread_administrator {

@@ -425,24 +425,40 @@ Normally, all resources can be deleted using `terraform destroy`.
 
 Azure requires CNAME records to be created before the CDN endpoint custom domain. When destroying, terraform reverses the dependency graph and will try to destroy the CDN endpoint custom domain first, and then the CNAME record. However, Azure requires the CNAME records to be deleted before destroying the custom domain name resource.
 
-To fix this, go into the Azure portal and delete the `<yourid42>` CNAME record resource manually, then run `terraform destroy`.
+To fix this, go into the Azure portal and delete the `<yourid42>` CNAME record resource manually. You can find it on the DNS zone resource in the `workshop-admin` resource group. Afterwards, run `terraform destroy`.
+
+### Virtual network integration
+
+Take a look at the [virtual network integration documentation](https://learn.microsoft.com/en-us/azure/app-service/overview-vnet-integration#how-regional-virtual-network-integration-works) for an explanation of how it works.
+
+The virtual network integration feature is managed by the [`azurerm_app_service_virtual_network_swift_connection` resource](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/app_service_virtual_network_swift_connection). Take a look at the example, and create a virtual network with a subnet and the vnet integration.
+
+Then, create a [`sql_virtual_network_rule` resource](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/sql_virtual_network_rule.html) to allow traffic from the virtual network to access the SQL server.
+
+Finally, remove the previous `azurerm_mssql_firewall_rule` to close connections from the public internet.
+
+Verify that the database connection works by going to  `https://<yourid42>.cloudlabs.no`.
+
 
 ### Backend with HTTPS on custom domain
 
-To get HTTPS for a web app, you need to create an [`azurerm_app_service_managed_certificate`](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/app_service_managed_certificate). Take a look at the example and make sure to provision the `azurerm_app_service_managed_certificate_binding` too, for HTTPS to work correctly.
+To get HTTPS for a web app, you need to create an [`azurerm_app_service_managed_certificate`](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/app_service_managed_certificate). Take a look at the example in the [provider documentation](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/cdn_endpoint_custom_domain) and make sure to provision the `azurerm_app_service_managed_certificate_binding` too, for HTTPS to work correctly.
 
 Verify by going to `https://api.<yourid42>.cloudlabs.no/healthcheck`.
 
+### Frontend with HTTPS on custom domain
 
+:information_source: Do to this step, the backend needs to support HTTPS.
 
+The [cdn_endpoint_custom_domain](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/cdn_endpoint_custom_domain) resource has a `cdn_managed_https` argument. Use a dedicated certificate using the server name indication protocol. *Note:* Provisioning the certificate can take up to an hour, so you might want to do this task last.
 
+Verify by going to `https://<yourid42>.cloudlabs.no`.
 
 ### WIP
 
 Unfinished, ask your workshop facilitator!
 
 ### Variables
-### Vnet
 ### Web app healthcheck
 ### Scaling
 ### Slots

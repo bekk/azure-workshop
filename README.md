@@ -233,6 +233,7 @@ We will provision an SQL server that has your personal user as an administrator.
 
     ```terraform
     resource "azurerm_linux_web_app" "todo" {
+      # ... code from before, add the app settings property
       app_settings = {
         DATABASE_URL = "sqlserver://${azurerm_mssql_server.todo.fully_qualified_domain_name}:1433;database=${azurerm_mssql_database.todo.name};user=${azurerm_mssql_server.todo.administrator_login};password=${random_password.sql_server_admin_password.result};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30"
       }
@@ -431,4 +432,3 @@ standard plan
 ### Tags
 ### Azure AD authentication only
 ### Keyvault with connection string
-### Random SQL password generation

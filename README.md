@@ -437,14 +437,14 @@ Then, create a [`sql_virtual_network_rule` resource](https://registry.terraform.
 
 Finally, remove the previous `azurerm_mssql_firewall_rule` to close connections from the public internet.
 
-Verify that the database connection works by going to  `https://<yourid42>.cloudlabs.no`.
+Verify that the database connection works by going to  `https://<yourid42>.cloudlabs-azure.no`.
 
 
 ### Backend with HTTPS on custom domain
 
 To get HTTPS for a web app, you need to create an [`azurerm_app_service_managed_certificate`](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/app_service_managed_certificate). Take a look at the example in the [provider documentation](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/cdn_endpoint_custom_domain) and make sure to provision the `azurerm_app_service_managed_certificate_binding` too, for HTTPS to work correctly.
 
-Verify by going to `https://api.<yourid42>.cloudlabs.no/healthcheck`.
+Verify by going to `https://api.<yourid42>.cloudlabs-azure.no/healthcheck`.
 
 ### Frontend with HTTPS on custom domain
 
@@ -452,7 +452,7 @@ Verify by going to `https://api.<yourid42>.cloudlabs.no/healthcheck`.
 
 The [cdn_endpoint_custom_domain](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/cdn_endpoint_custom_domain) resource has a `cdn_managed_https` argument. Use a dedicated certificate using the server name indication protocol. *Note:* Provisioning the certificate can take up to an hour, so you might want to do this task last.
 
-Verify by going to `https://<yourid42>.cloudlabs.no`.
+Verify by going to `https://<yourid42>.cloudlabs-azure.no`.
 
 ### WIP
 

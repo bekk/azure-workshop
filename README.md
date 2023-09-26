@@ -448,7 +448,7 @@ Verify by going to `https://api.<yourid42>.cloudlabs.no/healthcheck`.
 
 ### Frontend with HTTPS on custom domain
 
-:information_source: Do to this step, the backend needs to support HTTPS.
+:information_source: To do this task, the backend needs to support HTTPS.
 
 The [cdn_endpoint_custom_domain](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/cdn_endpoint_custom_domain) resource has a `cdn_managed_https` argument. Use a dedicated certificate using the server name indication protocol. *Note:* Provisioning the certificate can take up to an hour, so you might want to do this task last.
 

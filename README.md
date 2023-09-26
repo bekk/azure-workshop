@@ -419,6 +419,26 @@ The domain name we will use, `cloudlabs-azure.no`, is already configured in a DN
 
 ## Extras
 
+### Cleaning up you resources
+
+Normally, all resources can be deleted using `terraform destroy`.
+
+Azure requires CNAME records to be created before the CDN endpoint custom domain. When destroying, terraform reverses the dependency graph and will try to destroy the CDN endpoint custom domain first, and then the CNAME record. However, Azure requires the CNAME records to be deleted before destroying the custom domain name resource.
+
+To fix this, go into the Azure portal and delete the `<yourid42>` CNAME record resource manually, then run `terraform destroy`.
+
+### Backend with HTTPS on custom domain
+
+To get HTTPS for a web app, you need to create an [`azurerm_app_service_managed_certificate`](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/app_service_managed_certificate). Take a look at the example and make sure to provision the `azurerm_app_service_managed_certificate_binding` too, for HTTPS to work correctly.
+
+Verify by going to `https://api.<yourid42>.cloudlabs.no/healthcheck`.
+
+
+
+
+
+### WIP
+
 Unfinished, ask your workshop facilitator!
 
 ### Variables

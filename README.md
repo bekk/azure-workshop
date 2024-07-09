@@ -14,11 +14,7 @@ For this workshop you'll need:
 * [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
 * [Terraform](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
 
-Optionally, for optional tasks:
-
-* [k6](https://k6.io/docs/get-started/installation/)
-
-On macOS, with `brew`, you can run `brew install azure-cli terraform k6`
+On macOS, with `brew`, you can run `brew install azure-cli terraform`
 
 ### Authenticating in the Azure portal
 
@@ -54,9 +50,11 @@ Let's move on to running some actual commands 🚀
 
 1. Before you can provision infrastructure, you have to initialize the providers from `terraform.tf`. You can do this by running `terraform init` (from the `infra/` folder!).
 
-    This command will not do any infrastructure changes, but will create a `.terraform/` folder, a `.terraform.lock.hcl` lock file. The lock file can (and should) be committed. :warning: The `.terraform/` folder should not be committed, because it can contain secrets.
+    This command will not do any infrastructure changes, but will create a `.terraform/` folder, a `.terraform.lock.hcl` lock file. The lock file can (and should) be committed.
 
-2. Create a `main.tf` file (in `infra/`) and add the following code, replacing `<yourid42>` with a random string containing only lowercase letters and numbers, no longer than 8 characters. The `id` is used to create unique resource names and subdomains, so ideally at least 6 characters should be used to avoid collisions.
+   :warning: The `.terraform/` folder should not be committed, because it can contain secrets.
+
+3. Create a `main.tf` file (in `infra/`) and add the following code, replacing `<yourid42>` with a random string containing only lowercase letters and numbers, no longer than 8 characters. The `id` is used to create unique resource names and subdomains, so ideally at least 6 characters should be used to avoid collisions.
 
     ```terraform
     locals {

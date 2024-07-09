@@ -133,7 +133,9 @@ Web app is a representation of a web application. It manages app settings (envir
 
     ![](img/web-app-log-stream.png)
 
-    The log stream should show that the image was pulled, but that the `DATABASE_URL` was not defined when the image started. We haven't created a database yet, so we'll get back to that.
+    You might get just the "Connected!" message. Occasionally, the web apps spends some time pulling and starting the docker image. Read on, and get back to this tasks in a couple of minutes.
+
+    The log stream should show that the image was pulled, but that the `DATABASE_URL` was not defined when the image started. You should see an error in the log. We haven't created a database yet, so we'll get back to fixing the error later.
 
 ## Database
 
@@ -240,7 +242,7 @@ We will provision an SQL server that has your personal user as an administrator.
 
     This will construct the required SQL server connection string. Note that we reference the SQL server domain name, the database name and the administrator login and password.
 
-7. After running `terraform apply`, navigate to the web app in the Azure Portal, and find "Configuration" in the sidebar. Verify that the `DATABASE_URL` is registered as an application setting. Then go to the "Log stream" again to verify that the app started without errors. The container runs migrations on startup.
+7. After running `terraform apply`, navigate to the web app in the Azure Portal, and find "Settings > Environment variables" in the sidebar. Verify that the `DATABASE_URL` is registered as an application setting. Then go to the "Log stream" again to verify that the app started without errors. The container runs migrations on startup.
 
     Finally, go to the overview (the main page) of the web app. And go to the default domain listed there (`<something>.azurewebsites.net`). The root URL is not valid so you'll get "Cannot GET /" or similar. Try the `/users` route which should return an empty list as a JSON response.
 

@@ -50,9 +50,9 @@ Start by cloning this repository if you haven't already done so, either using yo
 * Using SSH keys: `git clone git@github.com:bekk/azure-workshop`
 * Using HTTPS: `git clone https://github.com/bekk/azure-workshop`
 
-This repository has a couple a folders: `frontend_dist/` contains some pre-built frontend files that we'll upload, `infra/` will contain our terraform code, and if you have trouble you can peek in the `solutions` folder. 
+This repository has a couple a folders: `frontend_dist/` contains some pre-built frontend files that we'll upload, `infra/` will contain our terraform code, and if you have trouble you can peek in the `solutions` folder.
 
-The `infra/` folder should only contain the `terraform.tf`. All files should be created in this folder, and all terraform commands assume you're in this folder, unless something else is explicitly specified. 
+The `infra/` folder should only contain the `terraform.tf`. All files should be created in this folder, and all terraform commands assume you're in this folder, unless something else is explicitly specified.
 
 > [!TIP]
 > Resources can be declared in any file inside a module (directory). For small projects, everything can declared in a single file (conventionally named `main.tf`). There are some [file naming conventions in the terraform style guide](https://developer.hashicorp.com/terraform/language/style#file-names).
@@ -81,20 +81,20 @@ Let's move on to running some actual commands 🚀
 
     The code above creates a *resource group*. An Azure resource group used to group resources that belong together. The resource group is created in the "West Europe" Azure region, and will be named `rg-todo-<yourid42>`.
 
-    > [!NOTE]
-    > The `locals` block defines a local variable. You can reference a variable by prefixing it with `local`, e.g. `local.id`. Local variables, like other blocks, can be defined and used anywhere in a terraform module, meaning `local.id` can be referenced in other files you create in the same directory.
+> [!NOTE]
+> The `locals` block defines a local variable. You can reference a variable by prefixing it with `local`, e.g. `local.id`. Local variables, like other blocks, can be defined and used anywhere in a terraform module, meaning `local.id` can be referenced in other files you create in the same directory.
 
 4. Run `terraform apply`. Take a look at the output: terraform will refresh the real-world state and compare it to the desired state (given by the code), then give an overview of which changes will be done. In this case, creating a resource group. Write `yes`, when terraform asks whether you want to continue.
 
-    > [!TIP]
-    > Running `terraform apply` implicitly both plans and applies the configuration. You can save the plan, and apply it in separate steps if you want to. E.g., `tf plan -out=plan.tfplan` followed by `tf apply plan.tfplan`.
+> [!TIP]
+> Running `terraform apply` implicitly both plans and applies the configuration. You can save the plan, and apply it in separate steps if you want to. E.g., `tf plan -out=plan.tfplan` followed by `tf apply plan.tfplan`.
 
 5. Go to the [Azure portal](https://portal.azure.com/) and verify that you can find your resource group. Tip: Using the search bar at the top might be the quickest way to find it.
 
 6. `terraform apply` created a *state file*, `terraform.tfstate` in the `infra/` directory. This file contains terraform's view of the state. Resources you've declared will show up here.
 
-    > [!IMPORTANT]
-    > The terraform state file can be different from both the *desired state* (what's declared in the code) and the *actual state* (the resources that's actually there). The desired state is different from the terraform state before you apply your changes. The terraform state is different from the *actual state* when some configuration change has been done manually (i.e., modifying or deleting a resource).
+> [!TIP]
+> The terraform state file can be different from both the *desired state* (what's declared in the code) and the *actual state* (the resources that's actually there). The desired state is different from the terraform state before you apply your changes. The terraform state is different from the *actual state* when some configuration change has been done manually (i.e., modifying or deleting a resource).
 
 ## Backend
 
@@ -104,10 +104,10 @@ Azure App Service is a backing service for many different services: Web Apps, Lo
 
 Azure Web App is a Platform-as-a-Service (PaaS) solution for running a web application. It manages app settings (environment variables), authentication, identity, custom domains, CORS, and deployment, in addition to app-specific networking rules.
 
-1. Create a new file, `backend.tf`. 
+1. Create a new file, `backend.tf`.
 
-    > [!TIP]
-    > The file name is not important. All resources in the same module (directory) can be located in the same file, but for everything except very small configurations it is usually better to use multiple files to structure the code.
+> [!TIP]
+> The file name is not important. All resources in the same module (directory) can be located in the same file, but for everything except very small configurations it is usually better to use multiple files to structure the code.
 
 2. We'll create a new resource of type `azurerm_service_plan`, named `sp-todo-<yourid42>`. Like this:
 
@@ -125,7 +125,7 @@ Azure Web App is a Platform-as-a-Service (PaaS) solution for running a web appli
 
     Note that the terraform local name (here: `todo`) does not need to be the same as the Azure resource name `sp-todo-<yourid42>`. Also note that the local name of the service plan and the resource group we created previously are the same. Both can be named `todo`, since we have to reference them by prefixing with the type (i.e., `azurerm_resource_group.todo.name` gets the resource group name).
 
-    In order to avoid rewriting all files when we want our app in a different location, we're going to refer to the resource group location. It is a well-established practice, and also beneficial for networking latency, to provision all resources in the same region. 
+    In order to avoid rewriting all files when we want our app in a different location, we're going to refer to the resource group location. It is a well-established practice, and also beneficial for networking latency, to provision all resources in the same region.
 
     The `sku_name` variable defines the vertical scaling, and also the price of the app service plan. At the time of writing, `B1` corresponds to 1 CPU core and 1.75GB RAM for 130 NOK/month. Take a look at the [pricing page](https://azure.microsoft.com/en-us/pricing/details/app-service/linux/) for more information.
 
@@ -140,7 +140,7 @@ Azure Web App is a Platform-as-a-Service (PaaS) solution for running a web appli
       resource_group_name = azurerm_resource_group.todo.name
       location            = azurerm_resource_group.todo.location
 
-      # Note: We're referencing the previously created app service plan 
+      # Note: We're referencing the previously created app service plan
       service_plan_id     = azurerm_service_plan.todo.id
 
       https_only = false
@@ -155,13 +155,13 @@ Azure Web App is a Platform-as-a-Service (PaaS) solution for running a web appli
     }
     ```
 
-    > [!NOTE]
-    > `azurerm_service_plan.todo.id` references a *read-only* attribute (somtimes called an exported attribute), an attribute automatically generated or provided by either the infrastructure provider (e.g., Azure) or the Terraform provider (i.e `azurerm`) as a helping attribute. They can be found in the documentation for a given resource (e.g., [for `azurerm_service_plan`](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/app_service_plan#attributes-reference)) All attributes can be referenced, but exported attributes are only available after the resource has been created.
+> [!NOTE]
+> `azurerm_service_plan.todo.id` references a *read-only* attribute (somtimes called an exported attribute), an attribute automatically generated or provided by either the infrastructure provider (e.g., Azure) or the Terraform provider (i.e `azurerm`) as a helping attribute. They can be found in the documentation for a given resource (e.g., [for `azurerm_service_plan`](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/app_service_plan#attributes-reference)) All attributes can be referenced, but exported attributes are only available after the resource has been created.
 
 5. `terraform apply` will create the web app and pull the image specified in the `application_stack` block.
 
-    > [!IMPORTANT]
-    > The image might take a couple of minutes to pull and start. We'll move on to the database meanwhile.
+> [!NOTE]
+> The image might take a couple of minutes to pull and start. We'll move on to the database meanwhile.
 
 
 ## Database
@@ -203,12 +203,12 @@ We will provision an SQL server that has your personal user as an administrator.
     }
     ```
 
-    This will create a random, 24-character password, which by default will contain uppercase, lowercase and special characters. The connection string cannot contain certain special characters without additional escaping, so we'll disable those. 
+    This will create a random, 24-character password, which by default will contain uppercase, lowercase and special characters. The connection string cannot contain certain special characters without additional escaping, so we'll disable those.
 
-    > [!CAUTION]
-    > Generating and using passwords in Terraform will store them in plaintext in the terraform state. This means that state storage should be properly protected with minimal access policies. The benefit of this is that we can give the secret in plain text (during provisioning) to other services that need it authenticate towards the database.
-    >
-    > After the next `terraform apply`, open `terraform.tfstate` that the passord is stored in the `result` property. Also notice that `result` property is in the `sensitive_attributes` list meaning the generated password is considered *sensitive* by terraform, meaning it will be specially handled and not accidentally printed during e.g., `terraform apply`. Usually it will be replaced as `(sensitive value)`.
+> [!CAUTION]
+> Generating and using passwords in Terraform will store them in plaintext in the terraform state. This means that state storage should be properly protected with minimal access policies. The benefit of this is that we can give the secret in plain text (during provisioning) to other services that need it authenticate towards the database.
+>
+> After the next `terraform apply`, open `terraform.tfstate` that the passord is stored in the `result` property. Also notice that `result` property is in the `sensitive_attributes` list meaning the generated password is considered *sensitive* by terraform, meaning it will be specially handled and not accidentally printed during e.g., `terraform apply`. Usually it will be replaced as `(sensitive value)`.
 
 
 4. Finally, let's create the SQL server. Change the `login_username` and `object_id` properties before running `terraform apply`:
@@ -244,8 +244,8 @@ We will provision an SQL server that has your personal user as an administrator.
     }
     ```
 
-    > [!NOTE]
-    > Creating a database server and/or a database can take some time, often a couple of minutes and occasionally up to ten minutes. If provisioning is slow, read on while waiting. If you want to, take a look at [the documentation for the `azurerm`-provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest) and try to find the `azurerm_mssql_server` and `azurerm_mssql_database` resources.
+> [!NOTE]
+> Creating a database server and/or a database can take some time, often a couple of minutes and occasionally up to ten minutes. If provisioning is slow, read on while waiting. If you want to, take a look at [the documentation for the `azurerm`-provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest) and try to find the `azurerm_mssql_server` and `azurerm_mssql_database` resources.
 
 5. Creating a Basic-tier database is rather simple, using the default settings:
 
@@ -282,8 +282,8 @@ Hopefully the web app is up and running by now. We'll take a look at the logs an
 
     The log stream should show that the image was pulled, but that the `DATABASE_URL` was not defined when the image started. You should see an error in the log. We've created the database, but haven't configured the app yet.
 
-    > [!NOTE]
-    > Log stream is a poor man's logging tool. Usually some other tool is used, often Azure's Application Insights tool or a third-party tool like Splunk, Grafana or Datadog. In this case Log stream is sufficient.
+> [!NOTE]
+> Log stream is a poor man's logging tool. Usually some other tool is used, often Azure's Application Insights tool or a third-party tool like Splunk, Grafana or Datadog. In this case Log stream is sufficient.
 
 
 2. If the database is done provisioning, we can configure the web app with the `DATABASE_URL` environment variable to `azurerm_linux_web_app.todo` in `backend.tf.` using *app settings*.
@@ -356,10 +356,10 @@ An Azure CDN has a profile, which represents the CDN and controls the pricing ti
     }
     ```
 
-    > [!NOTE]
-    > Terraform has many [built-in functions](https://developer.hashicorp.com/terraform/language/functions) to simplify working with strings, numbers, dates IP addresses and more.
-    >
-    > [`fileset(directory, pattern)` is a filesystem function](https://developer.hashicorp.com/terraform/language/functions/fileset) returns a list of all files in `directory` matching `pattern`.
+> [!NOTE]
+> Terraform has many [built-in functions](https://developer.hashicorp.com/terraform/language/functions) to simplify working with strings, numbers, dates IP addresses and more.
+>
+> [`fileset(directory, pattern)` is a filesystem function](https://developer.hashicorp.com/terraform/language/functions/fileset) returns a list of all files in `directory` matching `pattern`.
 
 3. Each file we want to upload is represented by a `azurerm_storage_blob` resource. In order to create multiple resources, terraform provides a `for_each` meta-argument as a looping mechanism. We assign the `frontend_files` list to it, and can use `each.value` to refer to an element in the list.
 
@@ -393,7 +393,7 @@ An Azure CDN has a profile, which represents the CDN and controls the pricing ti
       name                = "cdnp-todo-${local.id}"
       location            = azurerm_resource_group.todo.location
       resource_group_name = azurerm_resource_group.todo.name
-      # Microsoft is fastest to get up and running for the workshop. Also cheapest, 
+      # Microsoft is fastest to get up and running for the workshop. Also cheapest,
       # and we don't need special features provided by other alternatives
       sku = "Standard_Microsoft"
     }
@@ -420,16 +420,16 @@ An Azure CDN has a profile, which represents the CDN and controls the pricing ti
     }
     ```
 
-5. Run `terraform apply`, and navigate to the CDN profile (of type "Front Door and CDN profile" in the Azure portal). Find your endpoint from the list, and use the "Endpoint hostname" on the endpoint overview page (`cdne-todo-<yourid>.azureedge.net`) to verify that the CDN serves the frontend correctly. 
+5. Run `terraform apply`, and navigate to the CDN profile (of type "Front Door and CDN profile" in the Azure portal). Find your endpoint from the list, and use the "Endpoint hostname" on the endpoint overview page (`cdne-todo-<yourid>.azureedge.net`) to verify that the CDN serves the frontend correctly.
 
 ## DNS
 
 The domain name we will use, `cloudlabs-azure.no`, is already configured in a DNS zone. You can find the DNS zone inside the `workshop-admin` resource group. We will configure two CNAME records. `api.<yourid42>.cloudlabs-azure.no` for the backend web app, and `<yourid42>.cloudlabs-azure.no` for the frontend CDN.
 
 1. In order to define subdomain names, we need a reference to the DNS zone in our Terraform configuration. We will use a Terraform `data` block. A data block is very useful to refer to resources created externally, including resources created by other teams or common platform resources in an organization. Most resources in the `azurerm` provider have a corresponding data block.
-    
+
     A DNS zone, can be uniquely identified by it's name and the parent resource group name. Add the following in `dns.tf`:
-    
+
     ```terraform
     data "azurerm_dns_zone" "cloudlabs_azure_no" {
       name                = "cloudlabs-azure.no"
@@ -461,14 +461,14 @@ The domain name we will use, `cloudlabs-azure.no`, is already configured in a DN
     }
     ```
 
-    > [!IMPORTANT]
-    > The provisioning order matters. The custom hostname binding must be provisioned after the CNAME record. This is a limitation (design decision) in Azure. 
-    >
-    > Terraform will try to provision resources in parallel if possible. Resource blocks that refer to other objects will be implicitly ordered. In this case, we created an implicit dependency by referring to the `azurerm_dns_cname_record.todo-api.name` attribute in the resource block.
-    >
-    > Explicity dependencies can be created when needed with [the `depends_on` meta-argument](https://developer.hashicorp.com/terraform/language/meta-arguments/depends_on). You can read more in [the resource behavior documentation](https://developer.hashicorp.com/terraform/language/resources/behavior#resource-dependencies).
+> [!TIP]
+> The provisioning order matters. The custom hostname binding must be provisioned after the CNAME record. This is a limitation (design decision) in Azure.
+>
+> Terraform will try to provision resources in parallel if possible. Resource blocks that refer to other objects will be implicitly ordered. In this case, we created an implicit dependency by referring to the `azurerm_dns_cname_record.todo-api.name` attribute in the resource block.
+>
+> Explicity dependencies can be created when needed with [the `depends_on` meta-argument](https://developer.hashicorp.com/terraform/language/meta-arguments/depends_on). You can read more in [the resource behavior documentation](https://developer.hashicorp.com/terraform/language/resources/behavior#resource-dependencies).
 
-4. Using a CNAME record for a CDN works similarly: 
+4. Using a CNAME record for a CDN works similarly:
 
     In `dns.tf`:
 
@@ -493,8 +493,8 @@ The domain name we will use, `cloudlabs-azure.no`, is already configured in a DN
     }
     ```
 
-    > [!NOTE]
-    > If you apply these together, you might get an error. Even with the implicit dependency the CDN endpoint might try to verify the existence of the CNAME record before it's ready and Azure will return a "BadRequest" error. Terraform will print the message and quit. If you get this message, just apply the configuration again.
+> [!NOTE]
+> If you apply these together, you might get an error. Even with the implicit dependency the CDN endpoint might try to verify the existence of the CNAME record before it's ready and Azure will return a "BadRequest" error. Terraform will print the message and quit. If you get this message, just apply the configuration again.
 
 5. Apply the configuration and navigate to `<yourid42>.cloudlabs-azure.no` and verify that you can access the website and that the connection works!
 

@@ -410,13 +410,6 @@ An Azure Front Door has a profile (which controls pricing and features), endpoin
       resource_group_name = azurerm_resource_group.todo.name
       origin_host_name    = azurerm_storage_account.todo_frontend.primary_web_host
 
-      # Enable custom domain with automatic DNS management
-      enable_custom_domain = true
-
-      # DNS configuration
-      dns_zone_name                = data.azurerm_dns_zone.cloudlabs_azure_no.name
-      dns_zone_resource_group_name = data.azurerm_dns_zone.cloudlabs_azure_no.resource_group_name
-
       # Optional parameters (using defaults where appropriate)
       origin_host_header = azurerm_storage_account.todo_frontend.primary_web_host
     }
@@ -430,8 +423,8 @@ An Azure Front Door has a profile (which controls pricing and features), endpoin
     - An origin group with health checking
     - An origin pointing to your storage account
     - Routing rules for traffic forwarding
-    - A custom domain with managed TLS certificate
-    - DNS records (CNAME and validation) automatically
+    - A custom domain with managed TLS certificate (when enabled, later)
+    - DNS records (CNAME and validation) automatically (when enabled, later)
 
 ## DNS
 
@@ -470,6 +463,18 @@ The domain name we will use, `cloudlabs-azure.no`, is already configured in a DN
       resource_group_name = azurerm_resource_group.todo.name
       app_service_name    = azurerm_linux_web_app.todo.name
     }
+    ```
+
+4. To enable custom domains for the frontend add the following parameters to the Azure Front Door module block in `frontend.tf`:
+
+    ```terraform
+      # Enable custom domain with automatic DNS management
+      enable_custom_domain = true
+
+      # DNS configuration
+      dns_zone_name                = data.azurerm_dns_zone.cloudlabs_azure_no.name
+      dns_zone_resource_group_name = data.azurerm_dns_zone.cloudlabs_azure_no.resource_group_name
+
     ```
 
 > [!TIP]

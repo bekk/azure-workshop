@@ -50,7 +50,7 @@ Start by cloning this repository if you haven't already done so, either using yo
 * Using SSH keys: `git clone git@github.com:bekk/azure-workshop`
 * Using HTTPS: `git clone https://github.com/bekk/azure-workshop`
 
-This repository has a couple a folders: `frontend_dist/` contains some pre-built frontend files that we'll upload, `infra/` will contain our terraform code, and if you have trouble you can peek in the `solutions` folder.
+This repository has a couple a folders: `frontend_dist/` contains some pre-built frontend files that we'll upload, `infra/` will contain our terraform code, `modules/` contains reusable Terraform modules (including the Azure Front Door module we'll use), and if you have trouble you can peek in the `solutions` folder.
 
 The `infra/` folder should only contain the `terraform.tf`. All files should be created in this folder, and all terraform commands assume you're in this folder, unless something else is explicitly specified.
 
@@ -310,13 +310,23 @@ Hopefully the web app is up and running by now. We'll take a look at the logs an
 
 We will use blob (object) storage to host our web site. An Azure Storage Account can host file shares, queues, blobs and tables. Blobs are organized into "Containers". Each container can contain many blobs. A blob can be a text file (HTML, javascript, txt), an image, a video or any other file. Azure Storage containers provides similar functionality to AWS S3 or Google Cloud Storage.
 
-Storage accounts can replicate data across zones as regions. For backups, irreplaceable data, etc. replication across zones or regions should be considered. You can also choose between a standard and premium tier. The standard tier is usually sufficient for most use cases, but the premium performance tier can be considered if for applications with a lot of writes or latency sensitivity. Individual blobs also has access tiers, affecting the availability of the data, storage and access cost. All in all, the storage account pricing can be rather complicated, but in practice it is rather cheap and tweaking should only be necessary when the cost grows to high or performance is a problem. For hosting a static website behind a CDN, the cost is near zero.
+Storage accounts can replicate data across zones as regions. For backups, irreplaceable data, etc. replication across zones or regions should be considered. You can also choose between a standard and premium tier. The standard tier is usually sufficient for most use cases, but the premium performance tier can be considered if for applications with a lot of writes or latency sensitivity. Individual blobs also has access tiers, affecting the availability of the data, storage and access cost. All in all, the storage account pricing can be rather complicated, but in practice it is rather cheap and tweaking should only be necessary when the cost grows to high or performance is a problem. For hosting a static website behind Azure Front Door, the cost is near zero.
 
 When serving a static web site from a storage account, we will need to enable the "Static Website" feature and allow for public access. We will also use terraform to upload the files in the `frontend_dist/` folder in the GitHub repository.
 
-We use a CDN in front of the storage account to provide a custom domain for the frontend. The CDN has multiple settings for doing redirects, caching and more that we (mostly) won't touch in this workshop, but are should be looked at for production use cases.
+We use Azure Front Door in front of the storage account to provide a custom domain for the frontend. Azure Front Door provides better performance, security, and scalability compared to traditional CDN solutions. It includes features like global load balancing, TLS termination, Web Application Firewall capabilities, and automatic DNS management.
 
-An Azure CDN has a profile, which represents the CDN and controls the pricing tier and groups CDN endpoints resources. Each endpoint represents content from a different source (origin), different caching rules, compression settings and custom domains.
+To simplify the configuration, we'll use a Terraform module that encapsulates all the Azure Front Door complexity. This module automatically creates the Front Door profile, endpoint, origin group, origin, routing rules, custom domain, and DNS records with just a few simple parameters.
+
+An Azure Front Door has a profile (which controls pricing and features), endpoints (entry points for traffic), origin groups (health-checked backend pools), origins (your actual backend services), and routes (traffic routing rules). The module we'll use handles all of these automatically.
+
+> [!TIP]  
+> **Why use a module?** The Azure Front Door module demonstrates Terraform best practices:
+> - **Simplification**: Reduces 15+ resources to 6 simple parameters
+> - **Reusability**: Can be used across different projects with different configurations
+> - **Consistency**: Ensures standardized naming and configuration patterns
+> - **Maintainability**: Updates to Front Door best practices can be applied by updating the module
+> - **Abstraction**: Hides complexity while maintaining flexibility
 
 1. Creating the storage account is straight forward. We need to enable static website and public access to blobs. Add this to a new file, `frontend.tf`:
 
@@ -386,45 +396,46 @@ An Azure CDN has a profile, which represents the CDN and controls the pricing ti
 
     Navigate to "Static website" in the sidebar, and find the "Primary endpoint". Copy it into a new tab in the browser, and verify that you get the "k6 demo todo frontend". Ignore the network error for now, that won't work before we've set up DNS properly.
 
-4. We'll do the CDN configuration in one go:
+4. We'll use the Azure Front Door module that's already provided in this repository. The module is located in the `modules/azure-frontdoor/` directory at the repository root.
+
+    Add the Front Door configuration to your `frontend.tf`:
 
     ```terraform
-    resource "azurerm_cdn_profile" "todo_cdn_profile" {
-      name                = "cdnp-todo-${local.id}"
-      location            = azurerm_resource_group.todo.location
-      resource_group_name = azurerm_resource_group.todo.name
-      # Microsoft is fastest to get up and running for the workshop. Also cheapest,
-      # and we don't need special features provided by other alternatives
-      sku = "Standard_Microsoft"
-    }
+    # Azure Front Door module
+    module "azure_frontdoor" {
+      source = "../modules/azure-frontdoor"
 
-    resource "azurerm_cdn_endpoint" "todo_cdn_endpoint" {
-      name                = "cdne-todo-${local.id}"
-      location            = azurerm_resource_group.todo.location
+      # Required parameters
+      unique_id           = local.id
       resource_group_name = azurerm_resource_group.todo.name
-      profile_name        = azurerm_cdn_profile.todo_cdn_profile.name
+      origin_host_name    = azurerm_storage_account.todo_frontend.primary_web_host
 
-      # Configure the CDN endpoint to point to the storage container
+      # Enable custom domain with automatic DNS management
+      enable_custom_domain = true
+
+      # DNS configuration
+      dns_zone_name                = data.azurerm_dns_zone.cloudlabs_azure_no.name
+      dns_zone_resource_group_name = data.azurerm_dns_zone.cloudlabs_azure_no.resource_group_name
+
+      # Optional parameters (using defaults where appropriate)
       origin_host_header = azurerm_storage_account.todo_frontend.primary_web_host
-      origin {
-        name      = "origin"
-        host_name = azurerm_storage_account.todo_frontend.primary_web_host
-      }
-
-      # Not required, and probably not what you want in production, but simplifies debugging configuration
-      global_delivery_rule {
-        cache_expiration_action {
-          behavior = "BypassCache"
-        }
-      }
     }
     ```
 
-5. Run `terraform apply`, and navigate to the CDN profile (of type "Front Door and CDN profile" in the Azure portal). Find your endpoint from the list, and use the "Endpoint hostname" on the endpoint overview page (`cdne-todo-<yourid>.azureedge.net`) to verify that the CDN serves the frontend correctly.
+5. Run `terraform init` to initialize the new module, then `terraform apply`. Navigate to the Azure portal and find your Front Door profile (search for "fdp-todo-yourid"). Use the Front Door endpoint hostname to verify that it serves the frontend correctly.
+
+    The module automatically creates:
+    - A Front Door profile with Standard SKU
+    - An endpoint for traffic entry
+    - An origin group with health checking
+    - An origin pointing to your storage account
+    - Routing rules for traffic forwarding
+    - A custom domain with managed TLS certificate
+    - DNS records (CNAME and validation) automatically
 
 ## DNS
 
-The domain name we will use, `cloudlabs-azure.no`, is already configured in a DNS zone. You can find the DNS zone inside the `workshop-admin` resource group. We will configure two CNAME records. `api.<yourid42>.cloudlabs-azure.no` for the backend web app, and `<yourid42>.cloudlabs-azure.no` for the frontend CDN.
+The domain name we will use, `cloudlabs-azure.no`, is already configured in a DNS zone. You can find the DNS zone inside the `workshop-admin` resource group. We will configure a CNAME record `api.<yourid42>.cloudlabs-azure.no` for the backend web app. The frontend domain `<yourid42>.cloudlabs-azure.no` is automatically handled by the Azure Front Door module.
 
 1. In order to define subdomain names, we need a reference to the DNS zone in our Terraform configuration. We will use a Terraform `data` block. A data block is very useful to refer to resources created externally, including resources created by other teams or common platform resources in an organization. Most resources in the `azurerm` provider have a corresponding data block.
 
@@ -468,35 +479,15 @@ The domain name we will use, `cloudlabs-azure.no`, is already configured in a DN
 >
 > Explicity dependencies can be created when needed with [the `depends_on` meta-argument](https://developer.hashicorp.com/terraform/language/meta-arguments/depends_on). You can read more in [the resource behavior documentation](https://developer.hashicorp.com/terraform/language/resources/behavior#resource-dependencies).
 
-4. Using a CNAME record for a CDN works similarly:
+4. The frontend DNS is automatically handled by the Azure Front Door module! The module created both the CNAME record (`<yourid42>.cloudlabs-azure.no`) and the validation TXT record (`_dnsauth.<yourid42>.cloudlabs-azure.no`) for you.
 
-    In `dns.tf`:
+    You can verify this by checking the DNS zone in the Azure portal - you should see your records there.
 
-    ```terraform
-    resource "azurerm_dns_cname_record" "todo_cdn" {
-      zone_name = data.azurerm_dns_zone.cloudlabs_azure_no.name
-      resource_group_name = data.azurerm_dns_zone.cloudlabs_azure_no.resource_group_name
-
-      ttl = 60
-      name = "${local.id}"
-      record = azurerm_cdn_endpoint.todo_cdn_endpoint.fqdn
-    }
-    ```
-
-    In `frontend.tf`:
-
-    ```terraform
-    resource "azurerm_cdn_endpoint_custom_domain" "todo_frontend" {
-      name            = local.id
-      cdn_endpoint_id = azurerm_cdn_endpoint.todo_cdn_endpoint.id
-      host_name       = trimsuffix(azurerm_dns_cname_record.todo_cdn.fqdn, ".")
-    }
-    ```
-
-> [!NOTE]
-> If you apply these together, you might get an error. Even with the implicit dependency the CDN endpoint might try to verify the existence of the CNAME record before it's ready and Azure will return a "BadRequest" error. Terraform will print the message and quit. If you get this message, just apply the configuration again.
-
-5. Apply the configuration and navigate to `<yourid42>.cloudlabs-azure.no` and verify that you can access the website and that the connection works!
+5. Apply the configuration and navigate to both:
+   - `api.<yourid42>.cloudlabs-azure.no` (backend API)  
+   - `<yourid42>.cloudlabs-azure.no` (frontend via Front Door)
+   
+   Verify that you can access both the API and the website, and that the frontend can successfully connect to the backend API!
 
 
 ## Extras
@@ -505,9 +496,9 @@ The domain name we will use, `cloudlabs-azure.no`, is already configured in a DN
 
 Normally, all resources can be deleted using `terraform destroy`.
 
-Azure requires CNAME records to be created before the CDN endpoint custom domain. When destroying, terraform reverses the dependency graph and will try to destroy the CDN endpoint custom domain first, and then the CNAME record. However, Azure requires the CNAME records to be deleted before destroying the custom domain name resource.
+The Azure Front Door module handles the dependency ordering automatically, so you should be able to run `terraform destroy` without manual intervention. The module ensures that custom domains are removed before DNS records, preventing the dependency issues that occurred with the old CDN approach.
 
-To fix this, go into the Azure portal and delete the `<yourid42>` CNAME record resource manually. You can find it on the DNS zone resource in the `workshop-admin` resource group. Afterwards, run `terraform destroy`.
+If you encounter any issues during destruction, the module creates resources with predictable names based on your unique ID, so you can identify and manually clean them up if necessary.
 
 ### Virtual network integration
 

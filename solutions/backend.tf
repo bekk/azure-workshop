@@ -16,7 +16,7 @@ resource "azurerm_linux_web_app" "todo" {
   location            = azurerm_resource_group.todo.location
 
   # Note: We're referencing the previously created app service plan 
-  service_plan_id     = azurerm_service_plan.todo.id
+  service_plan_id = azurerm_service_plan.todo.id
 
   https_only = false
 
@@ -36,7 +36,7 @@ resource "azurerm_linux_web_app" "todo" {
 
 resource "azurerm_app_service_custom_hostname_binding" "todo-api" {
   hostname = "${azurerm_dns_cname_record.todo-api.name}.${data.azurerm_dns_zone.cloudlabs_azure_no.name}"
-                                                                                                          
+
   resource_group_name = azurerm_resource_group.todo.name
   app_service_name    = azurerm_linux_web_app.todo.name
 }

@@ -21,12 +21,12 @@ resource "azurerm_mssql_server" "todo" {
     # Setting this to true will disable the administrator password-based login
     azuread_authentication_only = false
     # CHANGE THESE
-    login_username              = "okpedersen"
-    object_id                   = "03d6f6f9-723f-42e6-b843-38ab6e8dbbd7"
+    login_username = "okpedersen"
+    object_id      = "03d6f6f9-723f-42e6-b843-38ab6e8dbbd7"
   }
 
   # Recommended security setting
-  minimum_tls_version           = "1.2"
+  minimum_tls_version = "1.2"
   # Is not enough to open the database to the public internet (despite the
   # name), but lets us configure firewall rules in a later step
   public_network_access_enabled = true

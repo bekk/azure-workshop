@@ -1,5 +1,5 @@
 resource "azurerm_storage_account" "todo_frontend" {
-  name = "sttodo${local.id}"
+  name                            = "sttodo${local.id}"
   resource_group_name             = azurerm_resource_group.todo.name
   location                        = azurerm_resource_group.todo.location
   account_tier                    = "Standard"
@@ -38,41 +38,79 @@ resource "azurerm_storage_blob" "frontend_files" {
   content_md5            = filemd5("${local.frontend_dir}/${each.value}")
 }
 
-
-resource "azurerm_cdn_profile" "todo_cdn_profile" {
-  name                = "cdnp-todo-${local.id}"
-  location            = azurerm_resource_group.todo.location
+# Azure Front Door Standard (replaces classic CDN resources)
+resource "azurerm_cdn_frontdoor_profile" "todo" {
+  name                = "fdp-todo-${local.id}"
   resource_group_name = azurerm_resource_group.todo.name
-  # Microsoft is fastest to get up and running for the workshop. Also cheapest, 
-  # and we don't need special features provided by other alternatives
-  sku = "Standard_Microsoft"
+  sku_name            = "Standard_AzureFrontDoor"
 }
 
-resource "azurerm_cdn_endpoint" "todo_cdn_endpoint" {
-  name                = "cdne-todo-${local.id}"
-  location            = azurerm_resource_group.todo.location
-  resource_group_name = azurerm_resource_group.todo.name
-  profile_name        = azurerm_cdn_profile.todo_cdn_profile.name
+resource "azurerm_cdn_frontdoor_endpoint" "todo_frontdoor" {
+  name                      = "fde-todo-${local.id}"
+  cdn_frontdoor_profile_id  = azurerm_cdn_frontdoor_profile.todo.id
+}
 
-  # Configure the CDN endpoint to point to the storage container
+resource "azurerm_cdn_frontdoor_origin_group" "todo" {
+  name                     = "og-storage-${local.id}"
+  cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.todo.id
+
+  load_balancing {}
+  health_probe {
+    protocol            = "Https"
+    interval_in_seconds = 120
+    path                = "/"
+    request_type        = "GET"
+  }
+}
+
+resource "azurerm_cdn_frontdoor_origin" "storage_static_site" {
+  name                          = "origin-storage-${local.id}"
+  cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.todo.id
+  enabled                       = true
+
+  certificate_name_check_enabled = false
+  host_name         = azurerm_storage_account.todo_frontend.primary_web_host
   origin_host_header = azurerm_storage_account.todo_frontend.primary_web_host
-  origin {
-    name      = "origin"
-    host_name = azurerm_storage_account.todo_frontend.primary_web_host
-  }
 
-  # Not required, and probably not what you want in production, but simplifies debugging configuration
-  global_delivery_rule {
-    cache_expiration_action {
-      behavior = "BypassCache"
-    }
+  http_port  = 80
+  https_port = 443
+
+  priority = 1
+  weight   = 1000
+}
+
+resource "azurerm_cdn_frontdoor_route" "todo" {
+  name                           = "route-all-${local.id}"
+  cdn_frontdoor_endpoint_id      = azurerm_cdn_frontdoor_endpoint.todo_frontdoor.id
+  cdn_frontdoor_origin_group_id  = azurerm_cdn_frontdoor_origin_group.todo.id
+  supported_protocols            = ["Http", "Https"]
+  https_redirect_enabled         = true
+  patterns_to_match              = ["/*"]
+  forwarding_protocol            = "MatchRequest"
+  link_to_default_domain         = true
+  cdn_frontdoor_origin_ids       = [azurerm_cdn_frontdoor_origin.storage_static_site.id]
+  cdn_frontdoor_custom_domain_ids = [azurerm_cdn_frontdoor_custom_domain.todo_frontend.id]
+
+  cache {
+    # Disabled caching similar to previous BypassCache setup; adjust later
+    query_string_caching_behavior = "IgnoreQueryString"
   }
 }
 
-resource "azurerm_cdn_endpoint_custom_domain" "todo_frontend" {
-  name            = local.id
-  cdn_endpoint_id = azurerm_cdn_endpoint.todo_cdn_endpoint.id
-  host_name       = trimsuffix(azurerm_dns_cname_record.todo_cdn.fqdn, ".")
+# Custom domain (CNAME defined in dns.tf). TLS managed certificate.
+resource "azurerm_cdn_frontdoor_custom_domain" "todo_frontend" {
+  name                     = "cdom-${local.id}"
+  cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.todo.id
+  dns_zone_id = data.azurerm_dns_zone.cloudlabs_azure_no.id
+  host_name                = trimsuffix(azurerm_dns_cname_record.todo_cdn.fqdn, ".")
+
+  tls {
+    certificate_type    = "ManagedCertificate"
+    minimum_tls_version = "TLS12"
+  }
 }
 
-
+resource "azurerm_cdn_frontdoor_custom_domain_association" "todo_frontend" {
+  cdn_frontdoor_custom_domain_id = azurerm_cdn_frontdoor_custom_domain.todo_frontend.id
+  cdn_frontdoor_route_ids        = [azurerm_cdn_frontdoor_route.todo.id]
+}
